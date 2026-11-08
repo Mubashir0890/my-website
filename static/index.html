@@ -1,0 +1,137 @@
+<!doctype html><html lang="uz"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Mafiya</title><script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+*{box-sizing:border-box;margin:0}
+body{height:100vh;font:15px system-ui,sans-serif;color:#fff;overflow-y:auto;display:flex;flex-direction:column;align-items:center;
+ padding:12px 12px max(12px,env(safe-area-inset-bottom));background:linear-gradient(#7cc8ff,#e6f6ff);color:#10243a;transition:background 2s,color 2s}
+body.night{background:linear-gradient(#070b24,#33206b);color:#fff}
+#stars i{position:fixed;width:3px;height:3px;border-radius:50%;background:#fff;opacity:0;transition:opacity 2s;animation:tw 2s infinite alternate}
+body.night #stars i{opacity:.9}@keyframes tw{to{transform:scale(2)}}
+h1{font-size:20px;margin:6px 0}#hint{min-height:44px;text-align:center;margin:6px 0;max-width:340px}
+#arena{position:relative;width:min(92vw,360px);aspect-ratio:1;margin-top:4px}
+#mid{position:absolute;inset:0;margin:auto;width:120px;height:120px;display:grid;place-items:center;text-align:center}
+#mid svg{position:absolute;inset:0;transform:rotate(-90deg)}
+#ring{transition:stroke-dashoffset 1s linear;stroke:#ffd54a}
+#orb{font-size:42px}#orb.swap{animation:rise 1.2s}@keyframes rise{from{transform:translateY(40px) rotate(-90deg);opacity:0}}
+#t{font-size:13px;opacity:.8}
+.pl{position:absolute;width:68px;text-align:center;transform:translate(-50%,-50%);font-size:12px;transition:.3s}
+.pl b{position:relative;display:grid;place-items:center;width:50px;height:50px;margin:0 auto 2px;border-radius:50%;font-size:20px;
+ background:#ffffff40;border:2px solid #ffffff90;backdrop-filter:blur(4px)}
+.pl b s{position:absolute;right:-8px;bottom:-6px;font-size:16px;text-decoration:none}
+.pl.pick{cursor:pointer}.pl.pick b{border-color:#ffd54a;animation:pulse 1s infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 8px #ffd54a55}}
+.pl.dead{filter:grayscale(1);opacity:.5}.pl.dead b::after{content:"💀";position:absolute;font-size:26px}
+.pl.fresh{animation:die 1.2s}@keyframes die{0%{transform:translate(-50%,-50%) scale(1.6);filter:drop-shadow(0 0 14px red)}40%{transform:translate(-50%,-50%) rotate(-12deg)}}
+.pl.chk b{border-color:#ff5252}.pl em{position:absolute;top:-6px;right:2px;background:#ff5252;color:#fff;border-radius:9px;padding:0 6px;font-style:normal}
+button{font:inherit;padding:11px 22px;border:0;border-radius:12px;background:#ffd54a;color:#1b1b1b;font-weight:600;margin:4px}
+#card,#win{position:fixed;inset:0;display:none;place-items:center;background:#000b;z-index:5;text-align:center;color:#fff}
+#card.on,#win.on{display:grid}
+.flip{width:190px;height:260px;perspective:800px}.flip>div{position:relative;width:100%;height:100%;transform-style:preserve-3d;animation:fl 1.1s .4s forwards}
+.f,.k{position:absolute;inset:0;backface-visibility:hidden;border-radius:18px;display:grid;place-items:center;align-content:center;font-size:20px;padding:12px}
+.k{background:#24104a;border:2px solid #ffd54a;font-size:60px}.f{transform:rotateY(180deg);background:#fff;color:#222}.f span{font-size:70px}
+@keyframes fl{to{transform:rotateY(180deg)}}
+#toast{position:fixed;top:18%;left:50%;transform:translateX(-50%);background:#000c;color:#fff;padding:14px 20px;border-radius:14px;opacity:0;pointer-events:none;text-align:center;max-width:86vw}
+#toast.on{animation:pop 3.2s}@keyframes pop{8%{opacity:1;transform:translateX(-50%) scale(1.1)}14%{transform:translateX(-52%)}20%{transform:translateX(-48%)}26%,85%{opacity:1;transform:translateX(-50%)}}
+#win h2{font-size:30px;animation:zoom .8s}@keyframes zoom{from{transform:scale(0)}}
+.rain{position:fixed;top:-30px;font-size:26px;animation:fall 3s linear forwards}@keyframes fall{to{transform:translateY(110vh) rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important}}
+.sm{font-size:13px;text-align:center;max-width:340px;opacity:.9;margin:2px 0}#info{color:#ffd54a}.bg{position:fixed;inset:0;z-index:-1;background-size:cover;background-position:center;opacity:0;transition:opacity 1.5s}.bg.on{opacity:1}
+h1,#hint,#me,#info{background:#0005;color:#fff;padding:5px 12px;border-radius:12px}#info{color:#ffd54a}#hint:empty,#me:empty,#info:empty{display:none}
+#prof{position:fixed;inset:0;display:none;place-items:start center;overflow-y:auto;padding-top:24px;background:linear-gradient(#000b,#000b),url(/bg-prof.jpg) center/cover;z-index:6;text-align:center;color:#fff;font-size:17px;line-height:2}#prof.on{display:grid}#snd{position:fixed;top:8px;right:8px;z-index:7;padding:6px 10px;border-radius:50%;background:#0006;color:#fff;font-size:18px;margin:0}#tour{position:fixed;inset:0;display:none;place-items:start center;overflow-y:auto;padding-top:24px;background:linear-gradient(#000b,#000b),url(/bg-prof.jpg) center/cover;z-index:6;text-align:center;color:#fff;font-size:17px;line-height:2}#tour.on{display:grid}#pg{position:fixed;left:0;right:0;top:0;bottom:calc(64px + env(safe-area-inset-bottom));display:none;place-items:start center;overflow-y:auto;padding-top:24px;background:linear-gradient(#000c,#000c),url(/bg-prof.jpg) center/cover;z-index:6;text-align:center;color:#fff;line-height:1.9}#pg.on{display:grid}
+#nav{position:fixed;left:0;right:0;bottom:0;display:none;justify-content:space-around;background:#111;z-index:7;padding:6px 2px calc(6px + env(safe-area-inset-bottom))}
+#nav b{flex:1;font-weight:400;font-size:21px;text-align:center;color:#999;cursor:pointer;line-height:1.2}#nav b small{display:block;font-size:11px}#nav b.act{color:#ffd54a}#btns{margin-bottom:70px}</style></head><body>
+<div id="stars"></div><h1 id="title">Mafiya</h1>
+<div id="arena"><div id="mid"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" fill="none" stroke="#fff3" stroke-width="5"/>
+<circle id="ring" cx="60" cy="60" r="52" fill="none" stroke-width="5" stroke-linecap="round" stroke-dasharray="327" stroke-dashoffset="0"/></svg>
+<div><div id="orb">☀️</div><div id="t"></div></div></div></div>
+<div id="me" class="sm"></div><div id="hint"></div><div id="info" class="sm"></div><div id="btns"></div><div id="toast"></div><div id="pg"></div><div id="nav"></div>
+<div id="card"><div class="flip"><div><div class="k">❓</div><div class="f" id="face"></div></div></div></div>
+<div id="win"><div><h2 id="wt"></h2><div id="wr" style="margin:14px 0;line-height:1.8"></div><div id="wb"></div></div></div>
+<script>
+const $=s=>document.querySelector(s),tg=Telegram.WebApp;tg.ready();tg.expand();
+const TN={c:"Aholi jamoasi",m:"Mafiya jamoasi",s:"Yolg'iz o'yinchi"};
+const AT={mkill:"Mafiya bilan birga tunda birini o'ldirasiz",kill:"Har tun bitta odamni o'ldirasiz",shoot:"Bir marta o'q uzasiz",heal:"Har tun bitta odamni davolaysiz",heal2:"Davolaysiz va hujumdan xabar topasiz",guard:"Bir odamni himoya qilasiz (uning o'rniga o'lasiz)",check:"Odam mafiyami, tekshirasiz",team:"Odamning jamoasini bilasiz",role:"Odamning aniq rolini bilasiz",watch:"Odamga kimlar kelganini ko'rasiz",track:"Odam qayerga borganini bilasiz",block:"Odamning tungi harakatini to'sasiz",frame:"Odamni komissarga mafiyadek ko'rsatasiz",poison:"Zaharlaysiz: keyingi tunda o'ladi (davolanmasa)",mute:"Odamni ertangi ovozdan mahrum qilasiz",revive:"Bir marta o'lgan odamni tiriltirasiz"};
+const FT={v:"🦺 Zirh: birinchi hujumdan omon qolasiz",2:"🗳 Ovozingiz 2 ta hisoblanadi",r:"🏹 Osilsangiz, sizga ovoz bergan birini olib ketasiz",l:"🍀 Hujumdan 50% omon qolasiz",i:"🛂 Birinchi osishdan omon qolasiz",d:"🕴 Komissarga tinch ko'rinasiz",K:"🎯 Maqsad: oxirgi tirik qolish",J:"🎯 Maqsad: sizni osishsin!",X:"🎯 Nishoningiz osilsin",S:"🎯 Maqsad: o'yin oxirigacha tirik qolish"};
+const WL={civil:"🎉 Tinch aholi g'alaba qildi!",mafia:"😈 Mafiya g'alaba qildi!",killer:"🔪 Yolg'iz qotil g'alaba qildi!",jester:"🤡 Hazilkash yutdi!",exec:"🪓 Jallod yutdi!"};
+const TT={lobby:"Kutish zali",roles:"Rolingiz",night:"🌙 Tun",day:"☀️ Muhokama",vote:"🗳 Ovoz berish",end:"O'yin tugadi"};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+let R={},ws,S={players:[],info:[]},left=0,total=1,lastKey="";
+const E=k=>R[k][0],N=k=>R[k][1],send=o=>ws.send(JSON.stringify(o));
+for(let i=0;i<40;i++){const s=document.createElement("i");s.style.cssText=`left:${Math.random()*100}%;top:${Math.random()*55}%;animation-delay:${Math.random()*2}s`;$("#stars").append(s)}
+const MU={lobby:"lobby",roles:"night",night:"night",day:"day",vote:"day",end:"lobby"},AU={};
+let muted=false,want="lobby",unlocked=false;try{muted=localStorage.getItem("mute")=="1"}catch(e){}
+["lobby","night","day"].forEach(k=>{const a=new Audio(`/music-${k}.mp3`);a.loop=true;a.volume=0;a.preload="none";AU[k]=a});
+function fade(a,to,stop){clearInterval(a._f);a._f=setInterval(()=>{const d=to-a.volume;if(Math.abs(d)<.03){a.volume=to;clearInterval(a._f);if(stop)a.pause()}else a.volume=Math.max(0,Math.min(1,a.volume+Math.sign(d)*.03))},100)}
+function music(){for(const k in AU){const a=AU[k],on=unlocked&&!muted&&k==want&&!document.hidden;if(on){if(a.paused)a.play().catch(()=>{});fade(a,.35,false)}else if(!a.paused)fade(a,0,true)}}
+const sb=document.createElement("button");sb.id="snd";sb.textContent=muted?"🔇":"🔊";
+sb.onclick=e=>{e.stopPropagation();muted=!muted;sb.textContent=muted?"🔇":"🔊";try{localStorage.setItem("mute",muted?"1":"0")}catch(e){}music()};document.body.append(sb);
+document.addEventListener("pointerdown",()=>{unlocked=true;music()},{once:true});document.addEventListener("visibilitychange",music);
+const BG={lobby:"lobby",roles:"night",night:"night",day:"day",vote:"vote",end:"lobby"};
+["lobby","night","day","vote"].forEach(k=>{const d=document.createElement("div");d.className="bg";d.dataset.k=k;d.style.backgroundImage=`url(/bg-${k}.jpg)`;document.body.prepend(d)});
+fetch("/roles").then(r=>r.json()).then(j=>{R=j;connect()});
+function connect(){ws=new WebSocket(`${location.protocol=="https:"?"wss":"ws"}://${location.host}/ws?room=${encodeURIComponent(tg.initDataUnsafe.start_param||"test")}&init=${encodeURIComponent(tg.initData)}`);
+ ws.onclose=()=>setTimeout(()=>location.reload(),3000);ws.onmessage=e=>{const n=JSON.parse(e.data);render(S,n);S=n}}
+setInterval(()=>{left=Math.max(0,left-1);$("#t").textContent=S.phase=="lobby"||S.phase=="end"?"":left+" s";$("#ring").style.strokeDashoffset=327*(1-left/total)},1000);
+function btn(t,f){const b=document.createElement("button");b.textContent=t;b.onclick=f;$("#btns").append(b)}
+function desc(k,n){const[e,nm,tm,a,u,f]=R[k];return `${e} <b>${nm}</b> · ${TN[tm]}<br>${a?AT[a]+(u?` (qoldi: ${n.uses})`:""):"Tungi harakat yo'q"}${[...f].map(c=>"<br>"+FT[c]).join("")}`}
+const who=(n,id,full)=>{const p=n.players.find(q=>q.id==id);return p?esc(p.name)+(full&&p.role?` (${E(p.role)} ${N(p.role)})`:""):""};
+function render(o,n){
+ const night=["night","roles"].includes(n.phase);document.body.className=night?"night":"";document.querySelectorAll(".bg").forEach(b=>b.classList.toggle("on",b.dataset.k==BG[n.phase]));want=MU[n.phase];music();
+ $("#title").textContent=TT[n.phase]+(n.day&&n.phase!="end"?" · "+n.day+"-kun":"");
+ if(o.phase!==n.phase){total=Math.max(n.left,1);const b=$("#orb");b.textContent=night?"🌙":"☀️";b.classList.remove("swap");void b.offsetWidth;b.classList.add("swap")}
+ left=n.left;const me=n.players.find(p=>p.id==n.me),alive=me&&me.alive,R_=n.players.length;
+ const canAct=alive&&!n.acted&&n.phase=="night"&&n.act,canVote=alive&&!n.muted&&n.phase=="vote";
+ const okT=p=>n.act=="revive"?!p.alive:p.alive&&(p.id!=n.me||/^heal/.test(n.act))&&!(n.act=="mkill"&&p.role&&R[p.role][2]=="m");
+ document.querySelectorAll(".pl").forEach(x=>x.remove());
+ n.players.forEach((p,i)=>{const a=2*Math.PI*i/R_-Math.PI/2,el=document.createElement("div"),was=o.players.find(q=>q.id==p.id);
+  el.className="pl"+(p.alive?"":" dead")+(was&&was.alive&&!p.alive?" fresh":"");
+  el.style.left=50+40*Math.cos(a)+"%";el.style.top=50+40*Math.sin(a)+"%";
+  if(canVote?p.alive:canAct&&okT(p)){el.classList.add("pick");el.onclick=()=>send(canVote?{t:"vote",to:p.id}:{t:"act",to:p.id})}
+  el.innerHTML=`<b>${esc(([...p.name][0]||"?").toUpperCase())}${p.role&&n.phase!="lobby"?`<s>${E(p.role)}</s>`:""}</b>${p.id==n.me?"👉 ":""}${n.phase=="end"&&p.w?"🏆":""}${esc(p.name)}${p.votes?`<em>${p.votes}</em>`:""}`;
+  $("#arena").append(el)});
+ $("#me").innerHTML=n.phase!="lobby"&&n.role?desc(n.role,n)+(n.tgt?`<br>🎯 Nishon: ${esc(n.tgt)}`:""):"";
+ $("#info").innerHTML=n.info.map(esc).join("<br>");drawPage(n);
+ let h="";$("#btns").innerHTML="";
+ if(n.phase=="lobby"){h=`O'yinchilar: ${R_} (kamida ${n.min}). Do'stlaringizni chaqiring!`;if(n.can)btn("Boshlash",()=>send({t:"start"}))}
+ else if(n.phase=="roles")h="Rollar tarqatilmoqda...";
+ else if(n.phase=="night")h=canAct?"👆 Nishonni tanlang":!alive?"💀 Siz o'ldingiz. Tomosha qiling.":n.acted?"✅ Tanlov qabul qilindi":"Tun... Siz uxlayapsiz 😴";
+ else if(n.phase=="day")h="Guruh chatida muhokama qiling: kim mafiya?";
+ else if(n.phase=="vote"){h=n.muted?"🤐 Siz bugun ovoz bera olmaysiz":canVote?"Kimni osamiz? Ismini bosing.":"Ovoz berish...";if(canVote)btn("⏭ Hech kimni emas",()=>send({t:"vote",to:0}))}
+ $("#hint").innerHTML=h;
+ if(n.phase=="roles"&&o.phase!="roles"&&n.role){$("#face").innerHTML=`<div><span>${E(n.role)}</span><br>${N(n.role)}</div>`;$("#card").classList.add("on");setTimeout(()=>$("#card").classList.remove("on"),5000)}
+ if(n.news){const w=n.news,k=n.day+w.kind+w.dead+w.rev;if(k!=lastKey){lastKey=k;const d=w.dead.map(i=>who(n,i,1)).join("<br>"),v=w.rev.map(i=>who(n,i)).join(", ");
+  toast(w.kind=="night"?(w.dead.length?`☠️ Tunda o'ldirildi:<br>${d}`:"🌅 Tun xotirjam o'tdi. Hech kim o'lmadi.")+(v?`<br>🕯 Tirildi: ${v}`:""):w.dead.length?`⚰️ Osildi:<br>${d}`:w.imm?"🛂 Imtiyozli omon qoldi!":"🤷 Hech kim chiqarilmadi.")}}
+ if(n.win&&!o.win)setTimeout(()=>{$("#wt").textContent=WL[n.win];
+  $("#wr").innerHTML=n.players.map(p=>`${p.w?"🏆 +20🪙":p.alive?"✅":"💀"} ${esc(p.name)} — ${E(p.role)} ${N(p.role)}`).join("<br>");$("#wb").innerHTML="";
+  if(n.can){const b=document.createElement("button");b.textContent="Yana o'ynash";b.onclick=()=>{send({t:"again"});$("#win").classList.remove("on")};$("#wb").append(b)}
+  $("#win").classList.add("on");for(let i=0;i<24;i++){const r=document.createElement("div");r.className="rain";r.textContent=n.win=="mafia"?"😈":"🎉";r.style.left=Math.random()*100+"%";r.style.animationDelay=Math.random()*1.5+"s";document.body.append(r);setTimeout(()=>r.remove(),5000)}},2500);
+ if(n.phase=="lobby"&&o.phase=="end")$("#win").classList.remove("on");
+}
+async function buy(k){const r=await fetch("/invoice",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({init:tg.initData,item:k})}).then(r=>r.json());r.link?tg.openInvoice(r.link):toast("Xato, qayta urining")}
+const SH={shield:["🛡 Qalqon",5],vote2:["🗳 2x ovoz",7],luck:["🍀 Omad",4]},PK=[["d10","💎 10 · ⭐25"],["d50","💎 50 · ⭐110"],["d120","💎 120 · ⭐230"]];
+const NAV=[["game","🎮","O'yin"],["tour","🏆","Turnir"],["shop","🛒","Do'kon"],["top","📊","Top"],["prof","👤","Profil"]];
+let page=null;
+NAV.forEach(([k,e,l])=>{const x=document.createElement("b");x.dataset.k=k;x.innerHTML=`${e}<small>${l}</small>`;x.onclick=()=>{page=k=="game"?null:k;drawPage(S)};$("#nav").append(x)});
+const own=t=>tg.openTelegramLink("https://t.me/mubashirbek?text="+encodeURIComponent(t));
+function drawPage(n){const p=$("#pg"),lob=n.phase=="lobby";$("#nav").style.display=lob?"flex":"none";if(!lob)page=null;
+ document.querySelectorAll("#nav b").forEach(x=>x.classList.toggle("act",x.dataset.k==(page||"game")));
+ if(!page){p.classList.remove("on");return}
+ const s=n.st||{games:0,wins:0,coins:0},i=n.inv||{},t=n.trn,w=n.tour||{prizes:[0,0,0],top:[],me:{}},m=n.players.find(q=>q.id==n.me),mine=t&&t.win.find(x=>x[4]==n.me);let h="";
+ if(page=="prof")h=`<b>👤 ${esc(m?m.name:"")}</b><br>🎮 ${s.games} o'yin · 🏆 ${s.wins} g'alaba<br>🪙 ${s.coins} · 💎 ${i.dia||0}<br>🛡 ${i.shield||0} · 🗳 ${i.vote2||0} · 🍀 ${i.luck||0}`;
+ else if(page=="top")h=`<b>📊 Haftalik reyting</b><br><small>🥇 ${w.prizes[0]}💎 +👑 · 🥈 ${w.prizes[1]}💎 · 🥉 ${w.prizes[2]}💎</small><div style="text-align:left;margin:8px 0">${w.top.map((r,j)=>`${j+1}. ${esc(r[0])} — ${r[1]}`).join("<br>")||"Hali o'yin yo'q"}</div>${w.me.rank?`Siz: ${w.me.rank}-o'rin · ${w.me.pts} ball`:""}`;
+ else if(page=="shop")h=`<b>🛒 Do'kon</b> · 💎 ${i.dia||0}`;
+ else if(t){const H=Math.floor(t.left/3600);h=`<b>🏆 Turnir #${t.id}</b><br>`+(t.st=="open"?`Kirish: ${t.price} ⭐ · Qatnashchilar: ${t.n} (kamida ${t.min})<br>🎁 Fond: ${t.pool} ⭐, eng yaxshi 20% ga bo'linadi<br>⏳ ${Math.floor(H/24)} kun ${H%24} soat · Ball: o'yin +1, g'alaba +3<br><small>${t.n<t.min?t.min+" kishi yig'ilmasa, ⭐ qaytariladi":"✅ Turnir bo'ladi"}</small>`:t.st=="done"?"✅ Yakunlandi":"↩️ Bekor qilindi, ⭐ qaytarildi")
+  +`<div style="text-align:left;margin:8px 0">${(t.st=="done"?t.win.map(x=>`${x[0]}. ${esc(x[1])} — ${x[2]} ⭐`):t.top.map((r,j)=>`${j+1}. ${esc(r[0])} — ${r[1]}`)).join("<br>")||"Hali ball yo'q"}</div>`+(t.in&&t.st=="open"?`Siz: ${t.pts} ball`:"")}
+ else h="🏆 Hozir turnir yo'q. Yangi turnir e'lon qilinishini kuting.";
+ p.innerHTML=`<div style="max-width:340px;padding:8px 8px 20px">${h}<div id="pb"></div></div>`;
+ const pb=$("#pb"),hd=x=>{const d=document.createElement("div");d.textContent=x;d.style.cssText="margin:8px 0 2px;opacity:.8";pb.append(d)},b=(x,f)=>{const e=document.createElement("button");e.textContent=x;e.onclick=f;pb.append(e)};
+ if(page=="shop"){hd("Olmos bilan");for(const k in SH)b(`${SH[k][0]} · ${SH[k][1]}💎 (bor: ${i[k]||0})`,()=>send({t:"buy",item:k}));
+  hd("Olmos sotib olish");PK.forEach(([k,x])=>b(x,()=>buy(k)));b("💳 Karta orqali",()=>own("Salom! Olmos sotib olmoqchiman. Mening ID: "+n.me))}
+ if(page=="tour"&&t){if(t.st=="open"&&!t.in)b(`⭐${t.price} bilan qo'shilish`,()=>buy("trn"));
+  if(t.st=="done"&&mine){const q=`Salom! Turnir #${t.id} da ${mine[0]}-o'rin, ${mine[2]} ⭐ yutug'imni olmoqchiman. ID: ${n.me}`;
+   if(mine[3]=="wait")b(`🎁 Yutug'ini olish (${mine[2]} ⭐)`,()=>{send({t:"claim",tid:t.id});own(q)});
+   else if(mine[3]=="req"){hd("⏳ So'rov yuborilgan, to'lovni kuting");b("✉️ Yana yozish",()=>own(q))}else hd("✅ Yutug'ingiz to'langan")}}
+ p.classList.add("on")}
+function toast(h){const t=$("#toast");t.innerHTML=h;t.classList.remove("on");void t.offsetWidth;t.classList.add("on")}
+</script></body></html>
