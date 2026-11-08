@@ -141,7 +141,7 @@ def trn_state(uid):
 
 async def trn_close(force=False, cancel=False):
     t = db.execute("SELECT id,price,min,end_ts FROM trn WHERE status='open'").fetchone()
-    if not t: return "Ochiq turnir yo'q."
+    if not t: return "Ochiq turnir yo'q." if force else ""
     tid, price, mn, end = t
     if not force and time.time() < end: return ""
     rows = db.execute("SELECT uid,name,pts,charge FROM trn_p WHERE tid=? ORDER BY pts DESC, rowid ASC", (tid,)).fetchall()
