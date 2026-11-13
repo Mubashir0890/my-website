@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Birga Chizamiz</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root{--bg:#fbf3ea;--card:#fff;--ink:#2b2030;--mute:#7a6b80;--rose:#d6455d;--teal:#1d8a7e;--line:#eadccf;--paper:#fffaf0}
+@media(prefers-color-scheme:dark){:root{--bg:#1c1522;--card:#2a2032;--ink:#f4ecf6;--mute:#a897ae;--line:#3b2e44;--paper:#fffaf0}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:12px 12px env(safe-area-inset-bottom,12px);overscroll-behavior:none}
+.top{width:100%;max-width:560px;text-align:center;margin-bottom:10px}
+.theme{font-size:20px;font-weight:800;letter-spacing:-.3px}
+.status{font-size:14px;color:var(--mute);margin-top:2px}
+.status i{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--mute);margin-right:6px}
+.status.on i{background:var(--teal);animation:pulse 1.6s infinite}
+canvas{touch-action:none;background:var(--paper);border-radius:20px;border:2px solid var(--line);box-shadow:0 8px 24px rgba(214,69,93,.12);cursor:crosshair}
+.bar{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;align-items:center;margin-top:12px;max-width:560px}
+.dot{width:34px;height:34px;border-radius:50%;border:3px solid var(--card);box-shadow:0 0 0 2px var(--line);padding:0}
+.dot[aria-pressed=true]{box-shadow:0 0 0 3px var(--ink);transform:scale(1.1)}
+input[type=range]{width:110px;accent-color:var(--rose)}
+button{font:inherit;font-weight:700;border:0;border-radius:12px;padding:10px 14px;background:var(--card);color:var(--ink);border:1px solid var(--line);cursor:pointer;transition:transform .12s}
+button:active{transform:scale(.94)}
+button:focus-visible{outline:3px solid var(--teal);outline-offset:2px}
+.main{background:var(--rose);color:#fff;border-color:var(--rose)}
+#toast{position:fixed;top:12px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;opacity:0;transition:opacity .2s;pointer-events:none}
+@keyframes pulse{50%{opacity:.35}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="theme" id="theme">Erkin rasm</div>
+  <div class="status" id="status"><i></i>Ulanmoqda…</div>
+</div>
+<canvas id="cv" aria-label="Umumiy chizish maydoni"></canvas>
+<div class="bar" id="colors" role="group" aria-label="Ranglar"></div>
+<div class="bar">
+  <input type="range" id="size" min="2" max="24" value="6" aria-label="Cho'tka qalinligi">
+  <button id="undo">Qaytarish</button>
+  <button id="clear">Tozalash</button>
+  <button id="themeBtn">Mavzu</button>
+</div>
+<div class="bar">
+  <button id="invite">Taklif qilish</button>
+  <button class="main" id="send">Rasmni yuborish</button>
+</div>
+<div id="toast" role="status"></div>
+<script>
+const tg = Telegram.WebApp; tg.ready(); tg.expand();
+const sp = tg.initDataUnsafe.start_param || "";
+const room = sp.startsWith("room_") ? sp.slice(5)
+  : Array.from(crypto.getRandomValues(new Uint8Array(10)), b => "abcdefghijklmnopqrstuvwxyz0123456789"[b % 36]).join("");
+const PAL = ["#1d8a7e","#d6455d","#e0a21b","#1f4e8c","#7b4fb8","#2b2030"];
+const THEMES = ["Bizning uyimiz","Sayohatdamiz","Kelajak shahrimiz","Bahor kuni","Bizning kafe","Yulduzli tun","Orzu qilgan bog'imiz"];
+const cv = document.getElementById("cv"), ctx = cv.getContext("2d");
+let strokes = [], byId = {}, color = PAL[0], size = 6, me = null, link = "", users = [], drawing = null, sent = 0, W = 0, ws = null;
+
+const rid = () => Math.random().toString(36).slice(2, 10);
+function toast(t){const e=document.getElementById("toast");e.textContent=t;e.style.opacity=1;setTimeout(()=>e.style.opacity=0,2200)}
+const send = o => ws && ws.readyState === 1 && ws.send(JSON.stringify(o));
+
+function fit(){
+  W = Math.max(220, Math.min(innerWidth - 24, innerHeight - 270, 560));
+  const d = devicePixelRatio || 1;
+  cv.style.width = cv.style.height = W + "px"; cv.width = cv.height = W * d;
+  ctx.setTransform(d,0,0,d,0,0); redraw();
+}
+function drawStroke(st, from = 0){
+  const p = st.p; if(!p.length) return;
+  ctx.strokeStyle = ctx.fillStyle = st.c; ctx.lineWidth = st.w * W / 400; ctx.lineCap = ctx.lineJoin = "round";
+  if(p.length === 1){ ctx.beginPath(); ctx.arc(p[0][0]*W, p[0][1]*W, ctx.lineWidth/2, 0, 7); ctx.fill(); return; }
+  ctx.beginPath(); const s = Math.max(from - 1, 0); ctx.moveTo(p[s][0]*W, p[s][1]*W);
+  for(let i = s + 1; i < p.length; i++) ctx.lineTo(p[i][0]*W, p[i][1]*W);
+  ctx.stroke();
+}
+function redraw(){ ctx.clearRect(0,0,W,W); strokes.forEach(s => drawStroke(s)); }
+
+const pt = e => { const r = cv.getBoundingClientRect(); return [+((e.clientX-r.left)/r.width).toFixed(4), +((e.clientY-r.top)/r.height).toFixed(4)]; };
+cv.addEventListener("pointerdown", e => {
+  cv.setPointerCapture(e.pointerId);
+  drawing = {id: rid(), u: me, c: color, w: size, p: [pt(e)]};
+  strokes.push(drawing); byId[drawing.id] = drawing; sent = 0; drawStroke(drawing); flush();
+});
+cv.addEventListener("pointermove", e => {
+  if(!drawing) return; const n = drawing.p.length; drawing.p.push(pt(e)); drawStroke(drawing, n);
+});
+const end = () => { if(drawing){ flush(); drawing = null; } };
+cv.addEventListener("pointerup", end); cv.addEventListener("pointercancel", end);
+function flush(){
+  if(!drawing || sent >= drawing.p.length) return;
+  send({t:"seg", id:drawing.id, c:drawing.c, w:drawing.w, p:drawing.p.slice(sent)}); sent = drawing.p.length;
+}
+setInterval(flush, 60);
+
+function setStatus(){
+  const other = users.find(u => u.id !== me), s = document.getElementById("status");
+  s.className = "status" + (other ? " on" : "");
+  s.replaceChildren(document.createElement("i"), document.createTextNode(other ? other.name + " bilan birgasiz" : "Sherigingizni kutyapmiz…"));
+  document.getElementById("invite").style.display = other ? "none" : "";
+}
+function connect(){
+  ws = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws/" + room + "?init=" + encodeURIComponent(tg.initData));
+  ws.onmessage = ev => {
+    const m = JSON.parse(ev.data);
+    if(m.t === "hello"){
+      me = m.you; link = m.link; users = m.users; strokes = m.strokes; byId = {}; strokes.forEach(s => byId[s.id] = s);
+      const slot = (users.find(u => u.id === me) || {slot:0}).slot; color = PAL[slot === 0 ? 0 : 1]; paintColors();
+      document.getElementById("theme").textContent = m.theme || "Erkin rasm"; setStatus(); redraw();
+    } else if(m.t === "users"){
+      const joined = m.users.length > users.length; users = m.users; setStatus(); if(joined) toast("Sherigingiz qo'shildi");
+    } else if(m.t === "seg"){
+      let st = byId[m.id]; if(!st){ st = {id:m.id, c:m.c, w:m.w, p:[]}; byId[m.id] = st; strokes.push(st); }
+      const n = st.p.length; st.p.push(...m.p); drawStroke(st, n);
+    } else if(m.t === "undo"){ strokes = strokes.filter(s => s.id !== m.id); delete byId[m.id]; redraw(); }
+    else if(m.t === "clear"){ strokes = []; byId = {}; redraw(); }
+    else if(m.t === "theme"){ document.getElementById("theme").textContent = m.v || "Erkin rasm"; }
+    else if(m.t === "full"){ ws.onclose = null; document.getElementById("status").textContent = "Bu xona band"; }
+  };
+  ws.onclose = () => { document.getElementById("status").textContent = "Qayta ulanmoqda…"; setTimeout(connect, 1500); };
+}
+
+function paintColors(){
+  const box = document.getElementById("colors"); box.replaceChildren();
+  PAL.forEach(c => { const b = document.createElement("button"); b.className = "dot"; b.style.background = c;
+    b.setAttribute("aria-label", "Rang " + c); b.setAttribute("aria-pressed", c === color);
+    b.onclick = () => { color = c; paintColors(); }; box.append(b); });
+}
+document.getElementById("size").oninput = e => size = +e.target.value;
+document.getElementById("undo").onclick = () => { send({t:"undo"}); };
+document.getElementById("clear").onclick = () => {
+  const go = ok => ok && send({t:"clear"});
+  tg.showConfirm ? tg.showConfirm("Hammasini tozalaysizmi? Sherigingizning chizgani ham o'chadi.", go) : go(confirm("Tozalaymizmi?"));
+};
+document.getElementById("themeBtn").onclick = () => send({t:"theme", v:THEMES[Math.floor(Math.random()*THEMES.length)]});
+document.getElementById("invite").onclick = () => {
+  if(!link) return toast("Havola sozlanmagan (BOT_USERNAME, APP_NAME)");
+  tg.openTelegramLink("https://t.me/share/url?url=" + encodeURIComponent(link) + "&text=" + encodeURIComponent("Keling, birga rasm chizamiz 🎨"));
+};
+document.getElementById("send").onclick = async () => {
+  const t = document.createElement("canvas"); t.width = t.height = cv.width; const c = t.getContext("2d");
+  c.fillStyle = "#fffaf0"; c.fillRect(0,0,t.width,t.height); c.drawImage(cv,0,0);
+  try{
+    const r = await fetch("/api/send", {method:"POST", headers:{"Content-Type":"application/json","X-Init-Data":tg.initData},
+      body: JSON.stringify({room, image: t.toDataURL("image/png")})});
+    toast(r.ok ? "Rasm ikkalangizning chatga yuborildi" : "Yuborilmadi. Ikkalangiz botga /start bosdingizmi?");
+  }catch(e){ toast("Tarmoq xatosi"); }
+};
+addEventListener("resize", fit); paintColors(); fit(); connect();
+</script>
+</body>
+</html>
